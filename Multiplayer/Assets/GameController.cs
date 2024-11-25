@@ -7,7 +7,8 @@ public class GameController : MonoBehaviourPunCallbacks
 
     public override void OnJoinedRoom()
     {
-        // Instantiates the player prefab for all clients
-        PhotonNetwork.Instantiate(playerPrefab.name, Vector3.zero, Quaternion.identity);
+        // Instantiates the player prefab for all clients in the room
+        Vector3 spawnPosition = new Vector3(Random.Range(-5f, 5f), 1, Random.Range(-5f, 5f));  // Example random spawn position
+        PhotonNetwork.Instantiate(playerPrefab.name, spawnPosition, Quaternion.identity);
     }
 }

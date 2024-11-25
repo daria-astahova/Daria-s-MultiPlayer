@@ -1,51 +1,65 @@
 using Photon.Pun;
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerManager : MonoBehaviourPun
 {
-    // Player movement speed
-    public float moveSpeed = 5f;
+    public float moveSpeed = 5f;  // Player movement speed
+    private Rigidbody rb;         // Rigidbody for physics-based movement
 
-    // For smoother movement, optional: Rigidbody to handle physics-based movement
-    private Rigidbody rb;
-
-    // Start is called before the first frame update
+    // Ensure the PhotonView and Rigidbody are properly configured for syncing movement
     void Start()
     {
-        // If this player is the one controlled by the local player
+        rb = GetComponent<Rigidbody>();
+
         if (photonView.IsMine)
         {
-            // Set up any necessary components for the local player
-            rb = GetComponent<Rigidbody>();  // Assuming you're using Rigidbody-based movement
-
-            // Here you could also set up camera control to follow the local player, etc.
+            // Local player: Handle movement and camera setup
+            Camera.main.GetComponent<AudioListener>().enabled = true; // Main camera listens to local player
         }
         else
         {
-            // If this is a remote player, disable certain components to avoid control
-            Destroy(GetComponent<PlayerManager>()); // Prevent other clients from controlling the remote player.
+            // Remote player: Disable physics and camera for remote players
+            rb.isKinematic = true; // Disable physics for remote players (they don’t control movement)
+
+            // Disable audio listener for remote players to prevent double audio input
+            Camera playerCamera = GetComponentInChildren<Camera>();
+            if (playerCamera != null)
+            {
+                AudioListener audioListener = playerCamera.GetComponent<AudioListener>();
+                if (audioListener != null)
+                {
+                    audioListener.enabled = false;  // Disable AudioListener for remote players
+                }
+            }
         }
     }
 
-    // Update is called once per frame
     void Update()
     {
-        // Only allow the local player to control the character
-        if (!photonView.IsMine)
-        {
-            return; // Return early if this player is not controlled by the local player
-        }
+        if (!photonView.IsMine) return;  // Only allow local player to control movement
 
-        // Get input from the player (keyboard/controller)
-        float moveX = Input.GetAxis("Horizontal");  // Left/Right movement (A/D or Arrow Keys)
-        float moveZ = Input.GetAxis("Vertical");    // Forward/Backward movement (W/S or Arrow Keys)
+        // Get input from the local player (only local player moves)
+        float moveX = Input.GetAxis("Horizontal");
+        float moveZ = Input.GetAxis("Vertical");
 
         // Calculate movement direction
         Vector3 movement = new Vector3(moveX, 0, moveZ) * moveSpeed * Time.deltaTime;
 
-        // Move the player using Rigidbody
-        rb.MovePosition(transform.position + movement);  // Move using Rigidbody to avoid directly manipulating the transform
+        // Move the player
+        MovePlayer(movement);
     }
 
-    // Optionally, you can add more features like jumping, rotating, etc., here.
+    void FixedUpdate()
+    {
+        if (!photonView.IsMine) return; // Only update movement for local player
+
+        // Physics-based updates or smooth movement can go here if necessary
+    }
+
+    private void MovePlayer(Vector3 movement)
+    {
+        // Move the player while keeping physics in check
+        rb.MovePosition(transform.position + movement);
+    }
 }
